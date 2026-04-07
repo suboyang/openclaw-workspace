@@ -1,0 +1,61 @@
+# 敏感文件（不备份）
+password
+credentials/
+
+# OpenClaw 配置备份与临时文件
+openclaw.json
+openclaw.json.bak*
+exec-approvals.json
+update-check.json
+
+# Python 虚拟环境（不备份）
+venv/
+.venv/
+env/
+lib/
+lib64/
+*.pyc
+__pycache__/
+
+# 大模型环境（不备份）
+qwen-tts-env/
+sd-env/
+
+# 嵌套 git 仓库（不备份）
+brew-install/
+ytdlp-env/
+
+# 技能内置模型（不备份）
+skills/qwen-tts/
+skills/rapid-ocr/
+skills/ocr-local/
+
+# 缓存与临时文件
+tmp/
+.cache/
+*.tmp
+*.log
+
+# 测试目录
+Test/
+
+# 大型媒体文件
+*.wav
+*.mp3
+*.mp4
+*.pdf
+*.jpg
+*.png
+*.zip
+*.tar
+*.gz
+*.rar
+
+# 训练数据
+eng.traineddata
+
+# 嵌套 git 仓库（不备份）
+workspace/.git
+
+# macOS
+.DS_Store
