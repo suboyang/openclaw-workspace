@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "skills": {
+    "local-whisper": {
+      "version": "1.0.0",
+      "installedAt": 1775304917077
+    },
+    "weather": {
+      "version": "1.0.0",
+      "installedAt": 1775306511341
+    },
+    "local-whisper-cpp": {
+      "version": "1.0.0",
+      "installedAt": 1775306684311
+    },
+    "openai-whisper": {
+      "version": "1.0.0",
+      "installedAt": 1775307013861
+    },
+    "qwen-tts": {
+      "version": "1.0.0",
+      "installedAt": 1775308373899
+    },
+    "translate": {
+      "version": "1.0.0",
+      "installedAt": 1775315495737
+    },
+    "video-transcript-downloader": {
+      "version": "1.0.0",
+      "installedAt": 1775356460263
+    },
+    "self-improving-agent": {
+      "version": "3.0.13",
+      "installedAt": 1775381802416
+    },
+    "summarize-pro": {
+      "version": "1.0.0",
+      "installedAt": 1775382362016
+    },
+    "github": {
+      "version": "1.0.0",
+      "installedAt": 1775443184879
+    },
+    "openclaw-agent-browser-clawdbot": {
+      "version": "1.0.0",
+      "installedAt": 1775452412849
+    },
+    "agent-browser-clawdbot": {
+      "version": "0.1.0",
+      "installedAt": 1775458346706
+    }
+  }
+}

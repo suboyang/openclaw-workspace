@@ -1,0 +1,7 @@
+{
+  "name": "youtube-summary-qwen",
+  "version": "1.0.0",
+  "description": "YouTube影片總結 + Qwen3-TTS Serena語音版",
+  "author": "台台小助手",
+  "created": "2026-04-05"
+}

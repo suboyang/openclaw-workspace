@@ -1,0 +1,8 @@
+{
+  "openclaw": {
+    "emoji": "🧠",
+    "requires": {
+      "bins": ["agent-browser", "curl"]
+    }
+  }
+}
