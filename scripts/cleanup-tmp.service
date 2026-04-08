@@ -1,0 +1,6 @@
+[Unit]
+Description=Clean old files in workspace tmp
+
+[Service]
+Type=oneshot
+ExecStart=/home/openclaw/.openclaw/workspace/scripts/cleanup_tmp.sh

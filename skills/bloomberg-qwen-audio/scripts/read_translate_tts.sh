@@ -1,6 +1,29 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+ORIGINAL_POWER_PROFILE=""
+set_performance_mode() {
+  if command -v powerprofilesctl >/dev/null 2>&1; then
+    ORIGINAL_POWER_PROFILE=$(powerprofilesctl get 2>/dev/null || true)
+    if [ -n "$ORIGINAL_POWER_PROFILE" ] && [ "$ORIGINAL_POWER_PROFILE" != "performance" ]; then
+      echo "⚡ 切換到 performance 模式..."
+      powerprofilesctl set performance >/dev/null 2>&1 || true
+    fi
+  fi
+}
+restore_power_mode() {
+  if command -v powerprofilesctl >/dev/null 2>&1; then
+    if [ -n "$ORIGINAL_POWER_PROFILE" ] && [ "$ORIGINAL_POWER_PROFILE" != "performance" ]; then
+      echo "🔋 恢復到 $ORIGINAL_POWER_PROFILE 模式..."
+      powerprofilesctl set "$ORIGINAL_POWER_PROFILE" >/dev/null 2>&1 || true
+    elif [ -z "$ORIGINAL_POWER_PROFILE" ]; then
+      powerprofilesctl set power-saver >/dev/null 2>&1 || true
+    fi
+  fi
+}
+trap restore_power_mode EXIT
+set_performance_mode
+
 URL="${1:-}"
 if [ -z "$URL" ]; then
   echo "Usage: read_translate_tts.sh <bloomberg-url>"

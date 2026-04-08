@@ -4,6 +4,29 @@
 
 set -e
 
+ORIGINAL_POWER_PROFILE=""
+set_performance_mode() {
+    if command -v powerprofilesctl >/dev/null 2>&1; then
+        ORIGINAL_POWER_PROFILE=$(powerprofilesctl get 2>/dev/null || true)
+        if [ -n "$ORIGINAL_POWER_PROFILE" ] && [ "$ORIGINAL_POWER_PROFILE" != "performance" ]; then
+            echo "⚡ 切換到 performance 模式..."
+            powerprofilesctl set performance >/dev/null 2>&1 || true
+        fi
+    fi
+}
+restore_power_mode() {
+    if command -v powerprofilesctl >/dev/null 2>&1; then
+        if [ -n "$ORIGINAL_POWER_PROFILE" ] && [ "$ORIGINAL_POWER_PROFILE" != "performance" ]; then
+            echo "🔋 恢復到 $ORIGINAL_POWER_PROFILE 模式..."
+            powerprofilesctl set "$ORIGINAL_POWER_PROFILE" >/dev/null 2>&1 || true
+        elif [ -z "$ORIGINAL_POWER_PROFILE" ]; then
+            powerprofilesctl set power-saver >/dev/null 2>&1 || true
+        fi
+    fi
+}
+trap restore_power_mode EXIT
+set_performance_mode
+
 YTDLP="/home/openclaw/.openclaw/ytdlp-env/bin/yt-dlp"
 WHISPER="/home/openclaw/.local/bin/whisper"
 WHISPER_MODEL_DIR="/home/openclaw/.cache/whisper"
@@ -128,6 +151,13 @@ edge-tts -t "$SUMMARY_CONTENT" \
 if [[ ! -f "$TTS_FILE" ]]; then
     log_error "TTS 生成失敗"
     exit 1
+fi
+
+# 固定語速：Serena/朗讀統一放慢到 atempo=0.95
+SLOWED_TTS_FILE="${TTS_FILE%.wav}.slowed.wav"
+ffmpeg -i "$TTS_FILE" -filter:a "atempo=0.95" "$SLOWED_TTS_FILE" -y 2>/dev/null
+if [[ -f "$SLOWED_TTS_FILE" ]]; then
+    TTS_FILE="$SLOWED_TTS_FILE"
 fi
 
 # ===== 步驟6: 發送到 Discord =====

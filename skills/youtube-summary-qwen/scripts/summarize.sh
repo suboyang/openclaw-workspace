@@ -10,6 +10,28 @@ set -e
 URL="${1:-}"
 MODE="${2:-}"
 FORCE_WHISPER=false
+ORIGINAL_POWER_PROFILE=""
+
+set_performance_mode() {
+    if command -v powerprofilesctl >/dev/null 2>&1; then
+        ORIGINAL_POWER_PROFILE=$(powerprofilesctl get 2>/dev/null || true)
+        if [ -n "$ORIGINAL_POWER_PROFILE" ] && [ "$ORIGINAL_POWER_PROFILE" != "performance" ]; then
+            echo "⚡ 切換到 performance 模式..."
+            powerprofilesctl set performance >/dev/null 2>&1 || true
+        fi
+    fi
+}
+
+restore_power_mode() {
+    if command -v powerprofilesctl >/dev/null 2>&1; then
+        if [ -n "$ORIGINAL_POWER_PROFILE" ] && [ "$ORIGINAL_POWER_PROFILE" != "performance" ]; then
+            echo "🔋 恢復到 $ORIGINAL_POWER_PROFILE 模式..."
+            powerprofilesctl set "$ORIGINAL_POWER_PROFILE" >/dev/null 2>&1 || true
+        elif [ -z "$ORIGINAL_POWER_PROFILE" ]; then
+            powerprofilesctl set power-saver >/dev/null 2>&1 || true
+        fi
+    fi
+}
 if [ -z "$URL" ]; then
     echo "用法: bash summarize.sh \"YouTube_URL\" [--force-whisper]"
     exit 1
@@ -35,7 +57,7 @@ start_gdm_if_needed() {
 }
 
 cleanup() {
-    :
+    restore_power_mode
 }
 trap cleanup EXIT
 
@@ -52,6 +74,8 @@ BEST_SUB_EN_SCRIPT="/home/openclaw/.openclaw/workspace/scripts/get_best_subtitle
 DOWNSUB_RAW_SCRIPT="/home/openclaw/.openclaw/workspace/scripts/downsub_raw_fetch.sh"
 SUBTITLE_TO_TEXT_SCRIPT="/home/openclaw/.openclaw/workspace/scripts/subtitle_to_text.py"
 DEEPSEEK_SUMMARY_SCRIPT="/home/openclaw/.openclaw/workspace/scripts/deepseek_browser_summary.py"
+
+set_performance_mode
 
 echo "📺 開始處理: $URL"
 
@@ -237,8 +261,10 @@ if [ ! -s "$TTS_OUTPUT" ]; then
     exit 1
 fi
 
-# 轉 MP3（ Discord 8MB 限制）
-ffmpeg -i "$TTS_OUTPUT" -codec:a libmp3lame -qscale:a 2 "$WORK_DIR/${SAFE_TITLE}.mp3" -y 2>/dev/null
+# 固定語速：Serena + atempo=0.95，然後轉 MP3（Discord 8MB 限制）
+SLOWED_WAV="$WORK_DIR/${SAFE_TITLE}.slowed.wav"
+ffmpeg -i "$TTS_OUTPUT" -filter:a "atempo=0.95" "$SLOWED_WAV" -y 2>/dev/null
+ffmpeg -i "$SLOWED_WAV" -codec:a libmp3lame -qscale:a 2 "$WORK_DIR/${SAFE_TITLE}.mp3" -y 2>/dev/null
 TTS_MP3="$WORK_DIR/${SAFE_TITLE}.mp3"
 
 echo "✅ TTS 生成完成: $TTS_MP3"
