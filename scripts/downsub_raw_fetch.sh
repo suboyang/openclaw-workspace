@@ -18,6 +18,21 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# ========== 检查 Chrome 是否运行，如果没有则启动 ==========
+if ! curl -s http://127.0.0.1:9222/json > /dev/null 2>&1; then
+  echo "🔵 Chrome 未运行，正在启动..."
+  google-chrome --remote-debugging-port=9222 --no-first-run --no-default-browser-check --user-data-dir=/tmp/chrome-remote-debug &
+  sleep 5
+  # 等待 Chrome 启动
+  for i in $(seq 1 10); do
+    if curl -s http://127.0.0.1:9222/json > /dev/null 2>&1; then
+      echo "✅ Chrome 已启动"
+      break
+    fi
+    sleep 1
+  done
+fi
+
 # 取可用 page，优先新标签页
 PAGE_ID=$(python3 - <<'PY'
 import urllib.request, json

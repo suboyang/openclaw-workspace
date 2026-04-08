@@ -210,40 +210,18 @@ else
     exit 1
 fi
 
-# ========== Step 3.5: 從 HTML 快照提取純中文正文 ==========
-echo "🧹 Step 3.5: 從 HTML 快照提取純中文正文..."
+# ========== Step 3.5: 直接使用 Ollama 输出的纯文本 ==========
+echo "🧹 Step 3.5: 复制 Ollama 总结文本..."
 CLEAN_SUMMARY_FILE="$WORK_DIR/clean_summary_${SAFE_TITLE}_$$.txt"
 
-python3 - <<'PYEOF' "$DEEPSEEK_OUT" "$CLEAN_SUMMARY_FILE"
-import sys, re
-html_path = sys.argv[1]
-output_path = sys.argv[2]
-
-with open(html_path, 'r', encoding='utf-8', errors='ignore') as f:
-    html = f.read()
-
-# 提取所有 StaticText 值
-texts = re.findall(r'StaticText\s+"([^"]+)"', html)
-
-# 找到中文正文起始點
-summary_parts = []
-in_summary = False
-for text in texts:
-    if '在人生的旅途中' in text or '在这门课程' in text:
-        in_summary = True
-    if in_summary:
-        # 遇到 UI 元素果斷停止
-        if any(kw in text for kw in ['新对话', '深度思考', '智能搜索', '内容由 AI 生成', '给 DeepSeek', '已思考']):
-            break
-        # 只保留有意義長度的中文段落
-        if len(text.strip()) > 15 and re.search(r'[\u4e00-\u9fff]{5,}', text):
-            summary_parts.append(text.strip())
-
-clean_text = '\n\n'.join(summary_parts)
-with open(output_path, 'w', encoding='utf-8') as f:
-    f.write(clean_text)
-print(f'Extracted {len(clean_text)} chars', file=sys.stderr)
-PYEOF
+# deepseek_browser_summary.py 现在直接输出纯文本，不需要再解析 HTML
+if [ -s "$DEEPSEEK_OUT" ]; then
+    cp "$DEEPSEEK_OUT" "$CLEAN_SUMMARY_FILE"
+    echo "已复制总结文本到: $CLEAN_SUMMARY_FILE ($(wc -c < "$CLEAN_SUMMARY_FILE") 字)"
+else
+    echo "警告: 总结文件为空，Ollama 可能未成功生成内容"
+    exit 1
+fi
 
 # ========== Step 4: Qwen3-TTS 語音生成 ==========
 echo "🎙️ Step 4: Qwen3-TTS 語音生成..."
