@@ -1,19 +1,20 @@
 ---
 name: bloomberg-qwen-audio
 description: Read Bloomberg articles in Chrome via CDP, translate them into a Chinese narration script, split the script to match the original English article's paragraph structure, synthesize each segment with Qwen3-TTS, merge the audio, and send a Discord-playable MP3 back to the channel. Use when the user wants a Bloomberg article turned into Chinese audio for listening.
+modified: 2026-04-08T23:34:35+08:00
 ---
 
 # Bloomberg Qwen Audio
 
-Use Chrome CDP to read Bloomberg articles, then turn them into a Chinese audio summary.
-
+Use Chrome CDP to read Bloomberg articles, then turn them into a Mandarin  Chinese audio.
+Don't Summarize Anything !
 ## Workflow
 
 1. Open the Bloomberg article in Chrome CDP.
 2. Read the full article content.
 3. Translate/adapt it into a natural Chinese narration script.
 4. Split the narration so the number of segments matches the English article's paragraph/content structure.
-5. Use Qwen3-TTS (Serena) to synthesize each segment.
+5. Use Qwen3-TTS (Serena) to synthesize each paragraph/content .
 6. Merge all segment audio files into one MP3.
 7. Send the final MP3 to Discord so it can be played inline.
 

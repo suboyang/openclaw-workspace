@@ -1,7 +1,14 @@
 ---
 name: youtube-summary-qwen
-description: "YouTube影片總結+語音版：字幕優先下載→無字幕時Whisper識別→摘要→翻譯(英文時)→Qwen3-TTS Serena語音。支援中英文，自動檢測。"
-metadata: {"openclaw":{"emoji":"🎙️","requires":{"bins":["ffmpeg","ffprobe"]}}}
+description: YouTube影片總結+語音版：字幕優先下載→無字幕時Whisper識別→摘要→翻譯(英文時)→Qwen3-TTS Serena語音。支援中英文，自動檢測。
+metadata:
+  openclaw:
+    emoji: 🎙️
+    requires:
+      bins:
+        - ffmpeg
+        - ffprobe
+modified: 2026-04-08T02:03:16+08:00
 ---
 
 # YouTube 影片總結 + Qwen3-TTS 語音 (多語言版)
