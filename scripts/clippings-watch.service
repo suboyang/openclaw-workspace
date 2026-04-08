@@ -1,0 +1,16 @@
+[Unit]
+Description=Watch Clippings and import metadata into openclaw.duckdb
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/home/openclaw/.openclaw/duckdb-env/bin/python /home/openclaw/.openclaw/workspace/scripts/watch_clippings_to_duckdb.py
+WorkingDirectory=/home/openclaw/.openclaw/workspace
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=default.target

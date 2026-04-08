@@ -8,6 +8,8 @@ from pathlib import Path
 
 WORK_DIR = Path("/home/openclaw/.openclaw/workspace/tmp")
 FINAL_AUDIO_DIR = Path("/home/openclaw/.openclaw/workspace/audio-news")
+IMPORT_PY = "/home/openclaw/.openclaw/workspace/scripts/import_clippings_to_duckdb.py"
+DUCKDB_PY = "/home/openclaw/.openclaw/duckdb-env/bin/python"
 TTS_PY = "/home/openclaw/.openclaw/workspace/skills/youtube-summary-qwen/scripts/tts_only.py"
 TTS_ENV = "/home/openclaw/.openclaw/qwen-tts-env/bin/python"
 DISCORD_CHANNEL = "1486326928578183270"
@@ -107,10 +109,17 @@ def send_discord(mp3: Path, title: str):
     ], check=True)
 
 
+def sync_duckdb(source_file: str | None):
+    if not source_file:
+        return
+    subprocess.run([DUCKDB_PY, IMPORT_PY, source_file], check=True)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("text_file")
     ap.add_argument("--title", required=True)
+    ap.add_argument("--source-file")
     args = ap.parse_args()
 
     original_power = set_perf()
@@ -120,8 +129,9 @@ def main():
         FINAL_AUDIO_DIR.mkdir(parents=True, exist_ok=True)
         final_mp3 = FINAL_AUDIO_DIR / f"{args.title}.final.mp3"
         merge_mp3(wavs, final_mp3)
+        sync_duckdb(args.source_file)
         send_discord(final_mp3, args.title)
-        print(json.dumps({"final_mp3": str(final_mp3), "segments": len(wavs)}, ensure_ascii=False))
+        print(json.dumps({"final_mp3": str(final_mp3), "segments": len(wavs), "source_file": args.source_file}, ensure_ascii=False))
     finally:
         if gdm_was_running:
             start_gdm()

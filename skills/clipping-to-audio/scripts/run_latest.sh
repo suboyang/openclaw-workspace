@@ -13,5 +13,11 @@ obj=json.loads(sys.argv[1])
 print(obj['chinese_tts'])
 PY
 )
+SOURCE_FILE=$(python3 - <<'PY' "$JSON_OUT"
+import json,sys
+obj=json.loads(sys.argv[1])
+print(obj['source'])
+PY
+)
 TITLE=$(basename "$ZH_FILE" .tts.zh.txt)
-python3 "$TTS_PY" "$ZH_FILE" --title "$TITLE"
+python3 "$TTS_PY" "$ZH_FILE" --title "$TITLE" --source-file "$SOURCE_FILE"
