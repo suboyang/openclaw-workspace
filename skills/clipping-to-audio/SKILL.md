@@ -58,6 +58,10 @@ Turn saved article clippings into Chinese audio.
 - Segment conservatively to reduce GPU crashes.
 - Default voice: Serena
 - Keep output filenames aligned to the source article title.
+- This skill is **local-only** once the clipping exists in `/home/openclaw/.openclaw/workspace/Clippings`.
+- Do **not** use Chrome, browser automation, agent-browser, DownSub, remote webpage extraction, or any web-fetching fallback inside this skill.
+- Do **not** reopen the article from the web if a local clipping markdown file already exists.
+- Allowed pipeline only: local clipping markdown → local cleaning → Ollama → Qwen3-TTS → merge audio → Discord send → database update.
 
 ## Scripts
 

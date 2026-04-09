@@ -10,31 +10,19 @@ set -e
 URL="${1:-}"
 MODE="${2:-}"
 FORCE_WHISPER=false
-ORIGINAL_POWER_PROFILE=""
 LOG_GPU_TASK_PY="/home/openclaw/.openclaw/workspace/scripts/log_gpu_task.py"
 GPU_TASK_ID=""
 GPU_TASK_STATUS="failed"
 GPU_ERROR_MESSAGE=""
 
 set_performance_mode() {
-    if command -v powerprofilesctl >/dev/null 2>&1; then
-        ORIGINAL_POWER_PROFILE=$(powerprofilesctl get 2>/dev/null || true)
-        if [ -n "$ORIGINAL_POWER_PROFILE" ] && [ "$ORIGINAL_POWER_PROFILE" != "performance" ]; then
-            echo "⚡ 切換到 performance 模式..."
-            powerprofilesctl set performance >/dev/null 2>&1 || true
-        fi
-    fi
+    echo "⚡ 切換 CPU governor 到 performance..."
+    sudo cpupower frequency-set -g performance >/dev/null 2>&1 || true
 }
 
 restore_power_mode() {
-    if command -v powerprofilesctl >/dev/null 2>&1; then
-        if [ -n "$ORIGINAL_POWER_PROFILE" ] && [ "$ORIGINAL_POWER_PROFILE" != "performance" ]; then
-            echo "🔋 恢復到 $ORIGINAL_POWER_PROFILE 模式..."
-            powerprofilesctl set "$ORIGINAL_POWER_PROFILE" >/dev/null 2>&1 || true
-        elif [ -z "$ORIGINAL_POWER_PROFILE" ]; then
-            powerprofilesctl set power-saver >/dev/null 2>&1 || true
-        fi
-    fi
+    echo "🔋 恢復 CPU governor 到 powersave..."
+    sudo cpupower frequency-set -g powersave >/dev/null 2>&1 || true
 }
 if [ -z "$URL" ]; then
     echo "用法: bash summarize.sh \"YouTube_URL\" [--force-whisper]"

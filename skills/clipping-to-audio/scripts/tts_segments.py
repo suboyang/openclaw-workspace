@@ -20,25 +20,12 @@ def run(cmd, **kwargs):
     return subprocess.run(cmd, text=True, capture_output=True, check=True, **kwargs)
 
 
-def get_power_profile():
-    try:
-        return run(["powerprofilesctl", "get"]).stdout.strip()
-    except Exception:
-        return ""
-
-
 def set_perf():
-    original = get_power_profile()
-    if original and original != "performance":
-        subprocess.run(["powerprofilesctl", "set", "performance"], check=False)
-    return original
+    subprocess.run(["sudo", "cpupower", "frequency-set", "-g", "performance"], check=False)
 
 
-def restore_power(original):
-    if original and original != "performance":
-        subprocess.run(["powerprofilesctl", "set", original], check=False)
-    elif not original:
-        subprocess.run(["powerprofilesctl", "set", "power-saver"], check=False)
+def restore_power(_original=None):
+    subprocess.run(["sudo", "cpupower", "frequency-set", "-g", "powersave"], check=False)
 
 
 def stop_gdm():
@@ -51,6 +38,15 @@ def stop_gdm():
 
 def start_gdm():
     subprocess.run(["sudo", "systemctl", "start", "gdm3"], check=False)
+
+
+def reset_nvidia_uvm_or_fail():
+    rm = subprocess.run(["sudo", "rmmod", "nvidia_uvm"], capture_output=True, text=True)
+    if rm.returncode != 0:
+        raise RuntimeError(f"rmmod nvidia_uvm failed: {rm.stderr.strip() or rm.stdout.strip()}")
+    mod = subprocess.run(["sudo", "modprobe", "nvidia_uvm"], capture_output=True, text=True)
+    if mod.returncode != 0:
+        raise RuntimeError(f"modprobe nvidia_uvm failed: {mod.stderr.strip() or mod.stdout.strip()}")
 
 
 def split_text(text: str, target_chars: int = 260):
@@ -148,10 +144,11 @@ def main():
     ap.add_argument("--source-file")
     args = ap.parse_args()
 
-    original_power = set_perf()
     gdm_was_running = stop_gdm()
     task_id = log_gpu_task_start(args.title, args.text_file)
     try:
+        reset_nvidia_uvm_or_fail()
+        set_perf()
         out_dir, wavs = synthesize_segments(Path(args.text_file), args.title)
         FINAL_AUDIO_DIR.mkdir(parents=True, exist_ok=True)
         final_mp3 = FINAL_AUDIO_DIR / f"{args.title}.final.mp3"
@@ -166,7 +163,7 @@ def main():
     finally:
         if gdm_was_running:
             start_gdm()
-        restore_power(original_power)
+        restore_power()
 
 
 if __name__ == "__main__":

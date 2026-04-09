@@ -29,6 +29,30 @@ Article:
 {text}
 """
 
+TITLE_ZH_PROMPT = """Translate the following English news headline into concise, natural Chinese.
+
+Rules:
+- Be faithful to the original meaning.
+- Keep it headline-like and natural.
+- Do not add commentary.
+- Output only the Chinese title.
+
+Headline:
+{text}
+"""
+
+SUMMARY_ZH_PROMPT = """Translate the following English news summary into concise, natural Chinese for search and retrieval.
+
+Rules:
+- Be faithful to the original meaning.
+- Keep it concise and natural.
+- Do not add commentary.
+- Output only the Chinese summary.
+
+Summary:
+{text}
+"""
+
 
 def ollama(prompt: str, timeout: int = 600) -> str:
     payload = {
@@ -117,6 +141,7 @@ def ensure_table(con):
     CREATE TABLE IF NOT EXISTS clippings_articles (
         id BIGINT PRIMARY KEY,
         article_title TEXT,
+        article_title_zh TEXT,
         source_url TEXT,
         source_file TEXT,
         author TEXT,
@@ -124,6 +149,7 @@ def ensure_table(con):
         created_time TIMESTAMP,
         description TEXT,
         summary TEXT,
+        summary_zh TEXT,
         tags TEXT,
         audio_file TEXT,
         audio_duration DOUBLE,
@@ -168,10 +194,12 @@ def import_one(con, src: Path):
     meta = parse_frontmatter(md_text)
     raw_text = resolved_raw_text(src, md_text)
     summary = clean_summary_text(ollama(SUMMARY_PROMPT.format(text=raw_text)))
+    summary_zh = ollama(SUMMARY_ZH_PROMPT.format(text=summary))
 
     created_time = meta['created_time'] or datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     published_time = meta['published_time']
     article_title = meta['article_title'] or src.stem
+    article_title_zh = ollama(TITLE_ZH_PROMPT.format(text=article_title))
     audio_file = resolve_audio_file(src)
     audio_duration = get_audio_duration(audio_file)
     status = infer_status(audio_file)
@@ -181,13 +209,14 @@ def import_one(con, src: Path):
     con.execute(
         '''
         INSERT INTO clippings_articles (
-            id, article_title, source_url, source_file, author, published_time, created_time,
-            description, summary, tags, audio_file, audio_duration, status
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            id, article_title, article_title_zh, source_url, source_file, author, published_time, created_time,
+            description, summary, summary_zh, tags, audio_file, audio_duration, status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ''',
         [
             row_id,
             article_title,
+            article_title_zh,
             meta['source_url'],
             str(src),
             meta['author'],
@@ -195,6 +224,7 @@ def import_one(con, src: Path):
             created_time,
             meta['description'],
             summary,
+            summary_zh,
             meta['tags'],
             audio_file,
             audio_duration,
@@ -202,22 +232,24 @@ def import_one(con, src: Path):
         ]
     )
     row = con.execute(
-        'SELECT article_title, source_url, source_file, author, published_time, created_time, description, summary, tags, audio_file, audio_duration, status FROM clippings_articles WHERE id = ?',
+        'SELECT article_title, article_title_zh, source_url, source_file, author, published_time, created_time, description, summary, summary_zh, tags, audio_file, audio_duration, status FROM clippings_articles WHERE id = ?',
         [row_id]
     ).fetchone()
     return {
         'article_title': row[0],
-        'source_url': row[1],
-        'source_file': row[2],
-        'author': row[3],
-        'published_time': str(row[4]) if row[4] else None,
-        'created_time': str(row[5]) if row[5] else None,
-        'description': row[6],
-        'summary': row[7],
-        'tags': row[8],
-        'audio_file': row[9],
-        'audio_duration': row[10],
-        'status': row[11],
+        'article_title_zh': row[1],
+        'source_url': row[2],
+        'source_file': row[3],
+        'author': row[4],
+        'published_time': str(row[5]) if row[5] else None,
+        'created_time': str(row[6]) if row[6] else None,
+        'description': row[7],
+        'summary': row[8],
+        'summary_zh': row[9],
+        'tags': row[10],
+        'audio_file': row[11],
+        'audio_duration': row[12],
+        'status': row[13],
     }
 
 
@@ -230,7 +262,9 @@ def main():
     files = choose_files(args.file, args.all)
     con = duckdb.connect(str(DB_PATH))
     ensure_table(con)
+    con.execute('ALTER TABLE clippings_articles ADD COLUMN IF NOT EXISTS article_title_zh TEXT')
     con.execute('ALTER TABLE clippings_articles ADD COLUMN IF NOT EXISTS source_url TEXT')
+    con.execute('ALTER TABLE clippings_articles ADD COLUMN IF NOT EXISTS summary_zh TEXT')
     con.execute('ALTER TABLE clippings_articles ADD COLUMN IF NOT EXISTS audio_file TEXT')
     con.execute('ALTER TABLE clippings_articles ADD COLUMN IF NOT EXISTS audio_duration DOUBLE')
     con.execute('ALTER TABLE clippings_articles ADD COLUMN IF NOT EXISTS status TEXT')

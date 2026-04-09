@@ -1,7 +1,0 @@
-{
-  "name": "browser-bloomberg",
-  "version": "1.0.0",
-  "description": "使用 Chrome CDP 讀取 Bloomberg 文章",
-  "author": "台台小助手",
-  "created": "2026-04-06"
-}
