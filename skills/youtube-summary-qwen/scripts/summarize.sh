@@ -11,6 +11,10 @@ URL="${1:-}"
 MODE="${2:-}"
 FORCE_WHISPER=false
 ORIGINAL_POWER_PROFILE=""
+LOG_GPU_TASK_PY="/home/openclaw/.openclaw/workspace/scripts/log_gpu_task.py"
+GPU_TASK_ID=""
+GPU_TASK_STATUS="failed"
+GPU_ERROR_MESSAGE=""
 
 set_performance_mode() {
     if command -v powerprofilesctl >/dev/null 2>&1; then
@@ -57,6 +61,14 @@ start_gdm_if_needed() {
 }
 
 cleanup() {
+    if [ -n "$GPU_TASK_ID" ]; then
+        python3 "$LOG_GPU_TASK_PY" end \
+            --id "$GPU_TASK_ID" \
+            --status "$GPU_TASK_STATUS" \
+            ${TTS_MP3:+--output-path "$TTS_MP3"} \
+            --model-name "Qwen3-TTS" \
+            ${GPU_ERROR_MESSAGE:+--error-message "$GPU_ERROR_MESSAGE"} >/dev/null 2>&1 || true
+    fi
     restore_power_mode
 }
 trap cleanup EXIT
@@ -76,6 +88,12 @@ SUBTITLE_TO_TEXT_SCRIPT="/home/openclaw/.openclaw/workspace/scripts/subtitle_to_
 DEEPSEEK_SUMMARY_SCRIPT="/home/openclaw/.openclaw/workspace/scripts/deepseek_browser_summary.py"
 
 set_performance_mode
+
+GPU_TASK_ID=$(python3 "$LOG_GPU_TASK_PY" start \
+    --task-name "youtube-summary-qwen: ${URL}" \
+    --task-type "youtube-summary-qwen" \
+    --input-path "$URL" \
+    --model-name "Qwen3-TTS" | python3 -c 'import sys,json; print(json.load(sys.stdin)["id"])')
 
 echo "📺 開始處理: $URL"
 
@@ -176,6 +194,7 @@ fi
 # 檢查轉錄結果
 if [ -z "$TRANSCRIPT_FILE" ] || [ ! -s "$TRANSCRIPT_FILE" ]; then
     echo "❌ 轉錄失敗"
+    GPU_ERROR_MESSAGE="transcript generation failed"
     start_gdm_if_needed
     exit 1
 fi
@@ -227,10 +246,12 @@ if python3 "$DEEPSEEK_SUMMARY_SCRIPT" "$TRANSCRIPT_FILE" "$DEEPSEEK_OUT" "$DEEPS
         FINAL_SUMMARY=$(cat "$DEEPSEEK_OUT")
     else
         echo "❌ DeepSeek 輸出為空"
+        GPU_ERROR_MESSAGE="DeepSeek output empty"
         exit 1
     fi
 else
     echo "❌ DeepSeek 瀏覽器總結失敗"
+    GPU_ERROR_MESSAGE="DeepSeek summary failed"
     exit 1
 fi
 
@@ -244,6 +265,7 @@ if [ -s "$DEEPSEEK_OUT" ]; then
     echo "已复制总结文本到: $CLEAN_SUMMARY_FILE ($(wc -c < "$CLEAN_SUMMARY_FILE") 字)"
 else
     echo "警告: 总结文件为空，Ollama 可能未成功生成内容"
+    GPU_ERROR_MESSAGE="clean summary file empty"
     exit 1
 fi
 
@@ -257,6 +279,7 @@ SUMMARY_FILE="$CLEAN_SUMMARY_FILE"
 
 if [ ! -s "$TTS_OUTPUT" ]; then
     echo "❌ TTS 生成失敗"
+    GPU_ERROR_MESSAGE="TTS generation failed"
     start_gdm_if_needed
     exit 1
 fi
@@ -283,6 +306,8 @@ openclaw message send --channel discord --target channel:1486326928578183270 \
 
 # 清理（保留最終檔案）
 rm -f "$TRANSCRIPT_FILE" "$SUMMARY_FILE" "$TTS_OUTPUT"
+
+GPU_TASK_STATUS="completed"
 
 echo "✅ 完成！"
 echo "📁 輸出檔案: $TTS_MP3"

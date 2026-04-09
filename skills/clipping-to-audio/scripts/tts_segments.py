@@ -10,6 +10,7 @@ WORK_DIR = Path("/home/openclaw/.openclaw/workspace/tmp")
 FINAL_AUDIO_DIR = Path("/home/openclaw/.openclaw/workspace/audio-news")
 IMPORT_PY = "/home/openclaw/.openclaw/workspace/scripts/import_clippings_to_duckdb.py"
 DUCKDB_PY = "/home/openclaw/.openclaw/duckdb-env/bin/python"
+LOG_GPU_TASK_PY = "/home/openclaw/.openclaw/workspace/scripts/log_gpu_task.py"
 TTS_PY = "/home/openclaw/.openclaw/workspace/skills/youtube-summary-qwen/scripts/tts_only.py"
 TTS_ENV = "/home/openclaw/.openclaw/qwen-tts-env/bin/python"
 DISCORD_CHANNEL = "1486326928578183270"
@@ -115,6 +116,31 @@ def sync_duckdb(source_file: str | None):
     subprocess.run([DUCKDB_PY, IMPORT_PY, source_file], check=True)
 
 
+def log_gpu_task_start(title: str, text_file: str) -> int | None:
+    try:
+        out = run([
+            "python3", LOG_GPU_TASK_PY, "start",
+            "--task-name", f"clipping-to-audio: {title}",
+            "--task-type", "clipping-to-audio",
+            "--input-path", text_file,
+            "--model-name", "Qwen3-TTS",
+        ]).stdout.strip()
+        return json.loads(out).get("id")
+    except Exception:
+        return None
+
+
+def log_gpu_task_end(task_id: int | None, status: str, output_path: str | None = None, error_message: str | None = None):
+    if not task_id:
+        return
+    cmd = ["python3", LOG_GPU_TASK_PY, "end", "--id", str(task_id), "--status", status, "--model-name", "Qwen3-TTS"]
+    if output_path:
+        cmd += ["--output-path", output_path]
+    if error_message:
+        cmd += ["--error-message", error_message]
+    subprocess.run(cmd, check=False)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("text_file")
@@ -124,6 +150,7 @@ def main():
 
     original_power = set_perf()
     gdm_was_running = stop_gdm()
+    task_id = log_gpu_task_start(args.title, args.text_file)
     try:
         out_dir, wavs = synthesize_segments(Path(args.text_file), args.title)
         FINAL_AUDIO_DIR.mkdir(parents=True, exist_ok=True)
@@ -131,7 +158,11 @@ def main():
         merge_mp3(wavs, final_mp3)
         sync_duckdb(args.source_file)
         send_discord(final_mp3, args.title)
+        log_gpu_task_end(task_id, "completed", str(final_mp3))
         print(json.dumps({"final_mp3": str(final_mp3), "segments": len(wavs), "source_file": args.source_file}, ensure_ascii=False))
+    except Exception as e:
+        log_gpu_task_end(task_id, "failed", error_message=str(e))
+        raise
     finally:
         if gdm_was_running:
             start_gdm()
