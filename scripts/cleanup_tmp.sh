@@ -10,7 +10,7 @@ fi
 
 echo "[$(date '+%F %T')] Cleaning files older than 10 days in $TARGET_DIR"
 
-find "$TARGET_DIR" -type f -mtime +10 -print -delete
+find "$TARGET_DIR" -type f -mtime +5 -print -delete
 find "$TARGET_DIR" -type d -empty -delete
 
 echo "[$(date '+%F %T')] Cleanup complete"

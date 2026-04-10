@@ -1,6 +1,7 @@
 ---
 name: deepseek-summary-browser
 description: Use the user's Chrome browser session to open chat.deepseek.com, paste transcript/plain text, and generate a structured Chinese summary for later TTS use. Use when subtitle/transcript text should be summarized online with DeepSeek instead of a local LLM.
+modified: 2026-04-10T14:20:41+08:00
 ---
 
 # DeepSeek Summary Browser

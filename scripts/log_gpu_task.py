@@ -7,7 +7,7 @@ import subprocess
 from datetime import datetime
 from pathlib import Path
 
-DB_PATH = Path('/home/openclaw/.openclaw/workspace/gpu_tasks.db')
+DB_PATH = Path('/home/openclaw/.openclaw/workspace/openclaw_tasks.db')
 
 
 def run_cmd(cmd):
@@ -60,7 +60,7 @@ def insert_task(args):
     con = connect_db()
     cur = con.cursor()
     cur.execute('''
-        INSERT INTO gpu_tasks (
+        INSERT INTO openclaw_tasks (
             task_name, task_type, status, start_time, host_name,
             gpu_name, gpu_bus_id, pcie_generation_max, pcie_generation_current,
             pcie_link_width_max, pcie_link_width_current,
@@ -104,7 +104,7 @@ def update_task(args):
 
     con = connect_db()
     cur = con.cursor()
-    current = cur.execute('SELECT start_time FROM gpu_tasks WHERE id = ?', (args.id,)).fetchone()
+    current = cur.execute('SELECT start_time FROM openclaw_tasks WHERE id = ?', (args.id,)).fetchone()
     duration = None
     if current and current[0] and args.end_time:
         try:
@@ -115,7 +115,7 @@ def update_task(args):
             duration = None
 
     cur.execute('''
-        UPDATE gpu_tasks
+        UPDATE openclaw_tasks
         SET status = ?,
             end_time = ?,
             duration_seconds = COALESCE(?, duration_seconds),
