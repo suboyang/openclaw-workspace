@@ -11,7 +11,7 @@ FINAL_AUDIO_DIR = Path("/home/openclaw/.openclaw/workspace/audio-news")
 IMPORT_PY = "/home/openclaw/.openclaw/workspace/scripts/import_clippings_to_duckdb.py"
 DUCKDB_PY = "/home/openclaw/.openclaw/duckdb-env/bin/python"
 LOG_GPU_TASK_PY = "/home/openclaw/.openclaw/workspace/scripts/log_gpu_task.py"
-TTS_PY = "/home/openclaw/.openclaw/workspace/skills/youtube-summary-qwen/scripts/tts_only.py"
+TTS_PY = "/home/openclaw/.openclaw/workspace/skills/youtube-summary-qwen/scripts/tts_only_1.7B.py"
 TTS_ENV = "/home/openclaw/.openclaw/qwen-tts-env/bin/python"
 DISCORD_CHANNEL = "1486326928578183270"
 
@@ -86,10 +86,21 @@ def synthesize_segments(text_file: Path, title: str):
 
 
 def merge_mp3(wavs, output_mp3: Path):
-    list_file = output_mp3.with_suffix(".list.txt")
-    list_file.write_text("\n".join([f"file '{w}'" for w in wavs]), encoding="utf-8")
-    merged_wav = output_mp3.with_suffix(".wav")
-    slowed_wav = output_mp3.with_suffix(".slowed.wav")
+    out_dir = wavs[0].parent
+    silence_wav = out_dir / "silence_1s.wav"
+    subprocess.run([
+        "ffmpeg", "-f", "lavfi", "-i", "anullsrc=r=24000:cl=mono",
+        "-t", "1", str(silence_wav), "-y"
+    ], check=True, capture_output=True)
+
+    list_file = out_dir / "merge_gap1.list.txt"
+    with list_file.open("w", encoding="utf-8") as f:
+        for w in wavs:
+            f.write(f"file '{w}'\n")
+            f.write(f"file '{silence_wav}'\n")
+
+    merged_wav = out_dir / "merged.wav"
+    slowed_wav = out_dir / "merged.slowed.wav"
     subprocess.run(["ffmpeg", "-f", "concat", "-safe", "0", "-i", str(list_file), "-c", "copy", str(merged_wav), "-y"], check=True, capture_output=True)
     subprocess.run(["ffmpeg", "-i", str(merged_wav), "-filter:a", "atempo=0.95", str(slowed_wav), "-y"], check=True, capture_output=True)
     subprocess.run(["ffmpeg", "-i", str(slowed_wav), "-codec:a", "libmp3lame", "-qscale:a", "2", str(output_mp3), "-y"], check=True, capture_output=True)
@@ -119,7 +130,7 @@ def log_gpu_task_start(title: str, text_file: str) -> int | None:
             "--task-name", f"clipping-to-audio: {title}",
             "--task-type", "clipping-to-audio",
             "--input-path", text_file,
-            "--model-name", "Qwen3-TTS",
+            "--model-name", "Qwen3-TTS-1.7B-CustomVoice",
         ]).stdout.strip()
         return json.loads(out).get("id")
     except Exception:
